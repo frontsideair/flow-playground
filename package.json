@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
-  "devDependencies": {
-    "flow-bin": "^0.64.0"
+  "dependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-flow": "^6.23.0",
+    "flow-bin": "^0.65.0"
+  },
+  "scripts": {
+    "flow": "flow",
+    "start": "babel-node index.js"
   }
 }
