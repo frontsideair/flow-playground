@@ -7,9 +7,7 @@
     "babel-cli": "^6.26.0",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.26.0",
     "babel-preset-flow": "^6.23.0",
-    "flow-bin": "^0.67.1",
-    "ramda": "^0.25.0",
-    "validator": "^9.4.1"
+    "flow-bin": "^0.67.1"
   },
   "scripts": {
     "flow": "flow",
