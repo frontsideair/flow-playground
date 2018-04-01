@@ -2,42 +2,54 @@
 
 // HKT helper type
 type HKT<F, T> = $Call<F, T>;
-// F: (* => *) => T: * => F<T>: *
+// F: (* => *)
+// T: *
+// F<T>: *
 
-// TODO: constructors and destructors (case expressions), class/instanceof?
 // TODO: not passing dicts, use classes/prototypes/`with` keyword?
-// TODO: exhaustiveness (cata?)
-// TODO: Eq<T> ???
+// TODO: exhaustiveness
 
 // Maybe
-type Maybe<T> = "Nothing" | { value: T };
-// type Maybe<T> = null | T; // unboxed
+type Nothing = null;
+type Just<T> = { value: T };
+type Maybe<T> = Nothing | Just<T>;
 
 const maybe = {
-  nothing: function() {
-    return "Nothing";
+  ana: {
+    nothing: function<T>(): Maybe<T> {
+      return null;
+    },
+    just: function<T>(x: T): Maybe<T> {
+      return { value: x };
+    }
   },
-  pure: function<T>(x: T): Maybe<T> {
-    return { value: x };
-  },
-  map: function<T, U>(f: T => U): (Maybe<T>) => Maybe<U> {
-    return x => {
-      if (x === "Nothing") {
-        return "Nothing";
+  cata: function<T, U>({
+    just,
+    nothing
+  }: {
+    just: T => U,
+    nothing: () => U
+  }): (Maybe<T>) => U {
+    return function(x: Maybe<T>): U {
+      if (x === null) {
+        return nothing();
       } else {
-        return maybe.pure(f(x.value));
+        return just(x.value);
       }
     };
   },
+  map: f => {
+    return maybe.cata({ nothing: maybe.ana.nothing, just: f });
+  },
   eq: function<T>(a: Maybe<T>, b: Maybe<T>): boolean {
-    if (a === "Nothing" && b === "Nothing") {
-      return true;
-    } else if (a !== "Nothing" && b !== "Nothing") {
-      // if primitive (===), else (.eq)
-      return a.value === b.value; // assume primitive
-    } else {
-      return false;
-    }
+    return maybe.cata({
+      nothing: () => maybe.cata({ nothing: () => true, just: _ => false })(b),
+      just: _a =>
+        maybe.cata({
+          nothing: () => false,
+          just: _b => _a === _b // for primitive T
+        })(b)
+    })(a);
   }
 };
 
@@ -55,30 +67,53 @@ const functor = {
 };
 
 // Either
-type Either<T, U> = { tag: "left", value: T } | { tag: "right", value: U };
-// type Either<T, U> = T | U // unboxed
+type Left<T> = { tag: "left", value: T };
+type Right<U> = { tag: "right", value: U };
+type Either<T, U> = Left<T> | Right<U>;
 
 const either = {
-  pure: function<T, U>(x: T): Either<T, U> {
-    return { tag: "left", value: x };
+  ana: {
+    left: function<T, U>(value: T): Either<T, U> {
+      return { tag: "left", value };
+    },
+    right: function<T, U>(value: U): Either<T, U> {
+      return { tag: "right", value };
+    }
   },
-  map: function<T, U, V>(f: T => U): (Either<T, V>) => Either<U, V> {
-    return x => {
+  cata: function<T, U, V>({
+    left,
+    right
+  }: {
+    left: T => V,
+    right: U => V
+  }): (Either<T, U>) => V {
+    return function(x: Either<T, U>): V {
       if (x.tag === "left") {
-        return either.pure(f(x.value));
+        return left(x.value);
       } else {
-        return x;
+        return right(x.value);
       }
     };
+  },
+  map: function<T, U, V>(f: T => U): (Either<T, V>) => Either<U, V> {
+    return either.cata({
+      left: x => either.ana.left(f(x)),
+      right: either.ana.right
+    });
+  },
+  eq: function<T, U>(a: Either<T, U>, b: Either<T, U>): boolean {
+    return either.cata({
+      left: _a => either.cata({ left: _b => _a === _b, right: _ => false })(b),
+      right: _a => either.cata({ left: _ => false, right: _b => _a === _b })(b)
+    })(a);
   }
 };
 
 // Eq
-interface Eq<F, T> { eq: (HKT<F, T>, HKT<F, T>) => boolean }
-// type Eq<F, T> = { eq: (HKT<F, T>, HKT<F, T>) => boolean };
+type Eq<T> = { eq: (T, T) => boolean };
 
 const eq = {
-  eq: function<F, T>(dict: Eq<F, T>, a: HKT<F, T>, b: HKT<F, T>) {
+  eq: function<T>(dict: Eq<T>, a: T, b: T): boolean {
     return dict.eq(a, b);
   }
 };
@@ -88,39 +123,83 @@ function timesTwo(x: number): number {
 }
 
 // List
-type List<T> = { head: T, tail: List<T> } | null;
+type Empty = null;
+type Cons<T> = { head: T, tail: List<T> };
+type List<T> = Empty | Cons<T>;
 
 const list = {
-  pure: function<T>(x: T): List<T> {
-    return { head: x, tail: list.empty };
+  ana: {
+    empty: function<T>(): List<T> {
+      return null;
+    },
+    cons: function<T>(head: T, tail: List<T>): List<T> {
+      return { head, tail };
+    }
   },
-  cons: function<T>(head: T, tail: List<T>): List<T> {
-    return { head, tail };
-  },
-  empty: null,
-  map: function<T, U>(f: T => U): (List<T>) => List<U> {
-    return x => {
-      if (x === null) {
-        return null;
+  cata: function<T, U>({
+    empty,
+    cons
+  }: {
+    empty: () => U,
+    cons: (T, List<T>) => U
+  }): (List<T>) => U {
+    return function(list: List<T>): U {
+      if (list === null) {
+        return empty();
       } else {
-        return { head: f(x.head), tail: list.map(f)(x.tail) };
+        return cons(list.head, list.tail);
       }
     };
   },
+  map: function<T, U>(f: T => U): (List<T>) => List<U> {
+    return list.cata({
+      empty: list.ana.empty,
+      cons: (head, tail) => list.ana.cons(f(head), list.map(f)(tail))
+    });
+  },
   eq: function<T>(a: List<T>, b: List<T>): boolean {
-    if (a === null && b === null) {
-      return true;
-    } else if (a !== null && b !== null) {
-      return a.head === b.head && list.eq(a.tail, b.tail);
-    } else {
-      return false;
-    }
+    return list.cata({
+      empty: () => list.cata({ empty: () => true, cons: _ => false })(b),
+      cons: (ha, ta) =>
+        list.cata({
+          empty: () => false,
+          cons: (hb, tb) => ha === hb && list.eq(ta, tb)
+        })(b)
+    })(a);
   }
 };
 
-console.log(functor.map(maybe, timesTwo)(maybe.pure(3)));
-console.log(functor.map(maybe, timesTwo)(maybe.nothing()));
-console.log(functor.map(either, timesTwo)(either.pure(3)));
-console.log(eq.eq(maybe, maybe.pure(3), maybe.pure(4)));
-console.log(maybe.eq(maybe.pure(3), maybe.pure(3)));
-// console.log(eq.eq(pure())
+console.log("fmap maybe", functor.map(maybe, timesTwo)(maybe.ana.just(3)));
+console.log("fmap maybe", functor.map(maybe, timesTwo)(maybe.ana.nothing()));
+console.log("fmap either", functor.map(either, timesTwo)(either.ana.left(3)));
+console.log("fmap either", functor.map(either, timesTwo)(either.ana.right(3)));
+console.log(
+  "fmap list",
+  functor.map(list, timesTwo)(
+    list.ana.cons(4, list.ana.cons(5, list.ana.empty()))
+  )
+);
+console.log("eq maybe", eq.eq(maybe, maybe.ana.just(3), maybe.ana.just(4)));
+console.log("eq maybe", eq.eq(maybe, maybe.ana.nothing(), maybe.ana.nothing()));
+console.log("eq either", eq.eq(either, either.ana.left(3), either.ana.left(3)));
+console.log(
+  "eq either",
+  eq.eq(either, either.ana.left(3), either.ana.right(3))
+);
+console.log(
+  "eq either",
+  eq.eq(either, either.ana.right(3), either.ana.right(4))
+);
+console.log("eq list", eq.eq(list, list.ana.empty(), list.ana.empty()));
+console.log(
+  "eq list",
+  eq.eq(list, list.ana.empty(), list.ana.cons(1, list.ana.empty()))
+);
+console.log(
+  "eq list",
+  eq.eq(
+    list,
+    list.ana.cons(1, list.ana.empty()),
+    list.ana.cons(1, list.ana.empty())
+  )
+);
