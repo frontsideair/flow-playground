@@ -1,5 +1,7 @@
 // @flow
 
+import maybe, { nothing, just } from "./maybe";
+
 // HKT helper type
 type HKT<F, T> = $Call<F, T>;
 // F: (* => *)
@@ -8,50 +10,6 @@ type HKT<F, T> = $Call<F, T>;
 
 // TODO: not passing dicts, use classes/prototypes/`with` keyword?
 // TODO: exhaustiveness
-
-// Maybe
-type Nothing = null;
-type Just<T> = { value: T };
-type Maybe<T> = Nothing | Just<T>;
-
-const maybe = {
-  ana: {
-    nothing: function<T>(): Maybe<T> {
-      return null;
-    },
-    just: function<T>(x: T): Maybe<T> {
-      return { value: x };
-    }
-  },
-  cata: function<T, U>({
-    just,
-    nothing
-  }: {
-    just: T => U,
-    nothing: () => U
-  }): (Maybe<T>) => U {
-    return function(x: Maybe<T>): U {
-      if (x === null) {
-        return nothing();
-      } else {
-        return just(x.value);
-      }
-    };
-  },
-  map: f => {
-    return maybe.cata({ nothing: maybe.ana.nothing, just: f });
-  },
-  eq: function<T>(a: Maybe<T>, b: Maybe<T>): boolean {
-    return maybe.cata({
-      nothing: () => maybe.cata({ nothing: () => true, just: _ => false })(b),
-      just: _a =>
-        maybe.cata({
-          nothing: () => false,
-          just: _b => _a === _b // for primitive T
-        })(b)
-    })(a);
-  }
-};
 
 // Functor
 // interface Functor<F, T, U> { map: ((T) => U) => (HKT<F, T>) => HKT<F, U> } // F<T> => F<U>
@@ -169,8 +127,8 @@ const list = {
   }
 };
 
-console.log("fmap maybe", functor.map(maybe, timesTwo)(maybe.ana.just(3)));
-console.log("fmap maybe", functor.map(maybe, timesTwo)(maybe.ana.nothing()));
+console.log("fmap maybe", functor.map(maybe, timesTwo)(just(3)));
+console.log("fmap maybe", functor.map(maybe, timesTwo)(nothing()));
 console.log("fmap either", functor.map(either, timesTwo)(either.ana.left(3)));
 console.log("fmap either", functor.map(either, timesTwo)(either.ana.right(3)));
 console.log(
@@ -179,8 +137,8 @@ console.log(
     list.ana.cons(4, list.ana.cons(5, list.ana.empty()))
   )
 );
-console.log("eq maybe", eq.eq(maybe, maybe.ana.just(3), maybe.ana.just(4)));
-console.log("eq maybe", eq.eq(maybe, maybe.ana.nothing(), maybe.ana.nothing()));
+console.log("eq maybe", eq.eq(maybe, just(3), just(4)));
+console.log("eq maybe", eq.eq(maybe, nothing(), nothing()));
 console.log("eq either", eq.eq(either, either.ana.left(3), either.ana.left(3)));
 console.log(
   "eq either",
