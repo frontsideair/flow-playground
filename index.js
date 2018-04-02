@@ -9,7 +9,6 @@ type HKT<F, T> = $Call<F, T>;
 // F<T>: *
 
 // TODO: not passing dicts, use classes/prototypes/`with` keyword?
-// TODO: exhaustiveness
 
 // Functor
 // interface Functor<F, T, U> { map: ((T) => U) => (HKT<F, T>) => HKT<F, U> } // F<T> => F<U>

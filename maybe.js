@@ -13,7 +13,12 @@ export function just<T>(x: T): Maybe<T> {
   return { tag: "just", value: x };
 }
 
-export function match<T, U>(branches: *): (Maybe<T>) => U {
+type Branches<T, U> = {
+  nothing: () => U,
+  just: T => U
+};
+
+export function match<T, U>(branches: Branches<T, U>): (Maybe<T>) => U {
   return function(maybe) {
     switch (maybe.tag) {
       case "nothing":
