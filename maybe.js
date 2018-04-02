@@ -1,6 +1,7 @@
 // @flow
 
-// Maybe
+import { k } from "./combinators";
+
 type Nothing = { tag: "nothing" };
 type Just<T> = { tag: "just", value: T };
 export type Maybe<T> = Nothing | Just<T>;
@@ -17,6 +18,13 @@ type Branches<T, U> = {
   nothing: () => U,
   just: T => U
 };
+
+// export function maker<T>(): Branches<T, Maybe<T>> {
+//   return {
+//     nothing: () => ({ tag: "nothing" }),
+//     just: value => ({ tag: "just", value })
+//   };
+// }
 
 export function match<T, U>(branches: Branches<T, U>): (Maybe<T>) => U {
   return function(maybe) {
@@ -40,11 +48,11 @@ const maybe = {
   },
   eq: function<T>(a: Maybe<T>, b: Maybe<T>): boolean {
     return match({
-      nothing: () => match({ nothing: () => true, just: _ => false })(b),
+      nothing: () => match({ nothing: () => true, just: k(false) })(b),
       just: _a =>
         match({
-          nothing: () => false,
-          just: _b => _a === _b // for primitive T
+          nothing: k(false),
+          just: _b => _a === _b // if T is primitive
         })(b)
     })(a);
   }

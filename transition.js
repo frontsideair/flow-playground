@@ -17,7 +17,16 @@ export function to<B>(to: B): To<B> {
   return { tag: "to", to };
 }
 
-export function match<A, B, O>(val: Transition<A, B>, branches: *): O {
+type Branches<A, B, O> = {
+  from: A => O,
+  between: (A, B) => O,
+  to: B => O
+};
+
+export function match<A, B, O>(
+  val: Transition<A, B>,
+  branches: Branches<A, B, O>
+): O {
   switch (val.tag) {
     case "from":
       return branches.from(val.from);
