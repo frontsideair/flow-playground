@@ -19,7 +19,9 @@ type Branches<T, U, V> = {
   right: U => V
 };
 
-function match<T, U, V>(branches: Branches<T, U, V>): (Either<T, U>) => V {
+export function match<T, U, V>(
+  branches: Branches<T, U, V>
+): (Either<T, U>) => V {
   return function(either) {
     switch (either.tag) {
       case "left":

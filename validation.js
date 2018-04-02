@@ -1,12 +1,13 @@
 // @flow
 
-opaque type Maybe<T> = T | null;
+import { just, nothing, type Maybe } from "./maybe";
+
 opaque type Err = string;
 opaque type Result = Err[]; // empty list = success
 opaque type Validator = (string) => Result;
-opaque type Validators<Form> = $ObjMap<Form, () => Validator>; // { [$Keys<Form>]: Validator };
-opaque type Validation<Form> = $ObjMap<Form, () => Result>; // { [$Keys<Form>]: Result };
-opaque type Errors<Form> = $ObjMap<Form, () => Maybe<Err>>; // { [$Keys<Form>]: Maybe<Err> };
+opaque type Validators<Form> = $ObjMap<Form, () => Validator>;
+opaque type Validation<Form> = $ObjMap<Form, () => Result>;
+opaque type Errors<Form> = $ObjMap<Form, () => Maybe<Err>>;
 
 function base(): Result {
   return [];
@@ -29,7 +30,7 @@ function isValid(result: Result): boolean {
 }
 
 function firstError(result: Result): Maybe<Err> {
-  return isValid(result) ? null : result[0];
+  return isValid(result) ? nothing() : just(result[0]);
 }
 
 function validateForm<Form: Object>(

@@ -19,13 +19,6 @@ type Branches<T, U> = {
   just: T => U
 };
 
-// export function maker<T>(): Branches<T, Maybe<T>> {
-//   return {
-//     nothing: () => ({ tag: "nothing" }),
-//     just: value => ({ tag: "just", value })
-//   };
-// }
-
 export function match<T, U>(branches: Branches<T, U>): (Maybe<T>) => U {
   return function(maybe) {
     switch (maybe.tag) {

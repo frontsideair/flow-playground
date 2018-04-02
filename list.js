@@ -17,7 +17,7 @@ type Branches<T, U> = {
   cons: (T, List<T>) => U
 };
 
-function match<T, U>(branches: Branches<T, U>): (List<T>) => U {
+export function match<T, U>(branches: Branches<T, U>): (List<T>) => U {
   return function(list) {
     if (list === null) {
       return branches.empty();
