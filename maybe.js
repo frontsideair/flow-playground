@@ -1,6 +1,8 @@
 // @flow
 
-type Maybe<A, B = *> = ((A) => B, B) => B;
+import { k } from "./combinators";
+
+type Maybe<A, B = *> = ((A) => B, () => B) => B;
 // type Maybe<A> = MaybeT<A, *>;
 
 // const just: <A, B>(A) => Maybe<A, B> = x => (f, g) => f(x)
@@ -8,17 +10,17 @@ function just<A>(x: A): Maybe<A> {
   return (f, g) => f(x);
 }
 
-const nothing: Maybe<*> = (f, g) => g;
-// function nothing<A>(): Maybe<A> {
-//   return (f, g) => g;
-// }
+// const nothing: Maybe<*> = (f, g) => g;
+function nothing(): Maybe<*> {
+  return (f, g) => g();
+}
 
 function isJust(fa: Maybe<*>): boolean {
-  return fa(_ => true, false);
+  return fa(_ => true, k(false));
 }
 
 function isNothing(fa: Maybe<*>): boolean {
-  return fa(_ => false, true);
+  return fa(_ => false, k(true));
 }
 
 function map<A, B>(f: A => B): (Maybe<A>) => Maybe<B> {
@@ -29,7 +31,7 @@ function map<A, B>(f: A => B): (Maybe<A>) => Maybe<B> {
 }
 
 function eq<A>(fa: Maybe<A>, fb: Maybe<A>): boolean {
-  return fa(a => fb(b => a === b, false), fb(_ => false, true));
+  return fa(a => fb(b => a === b, k(false)), k(fb(_ => false, k(true))));
 }
 
 const pure = just;
@@ -51,7 +53,7 @@ function bind<A, B>(fa: Maybe<A>): ((A) => Maybe<B>) => Maybe<B> {
 interface ToString { +toString: () => string }
 
 function toString<A: ToString>(fa: Maybe<A>): string {
-  return fa(a => `Just ${a.toString()}`, "Nothing");
+  return fa(a => `Just ${a.toString()}`, k("Nothing"));
 }
 
 const _just: Maybe<number> = just(10);
@@ -69,22 +71,22 @@ console.log(
   toString(ap(nothing)(nothing))
 );
 
-// function divBy(a: number): number => Maybe<number> {
-//   return b => {
-//     if (a === 0) {
-//       return nothing;
-//     } else {
-//       return just(b / a);
-//     }
-//   };
-// }
+function divBy(a: number): number => Maybe<number> {
+  return b => {
+    if (a === 0) {
+      return nothing;
+    } else {
+      return just(b / a);
+    }
+  };
+}
 
-// console.log(
-//   toString(bind(just(3))(divBy(0))),
-//   toString(bind(just(3))(divBy(1))),
-//   toString(bind(nothing)(divBy(0))),
-//   toString(bind(nothing)(divBy(1)))
-// );
+console.log(
+  toString(bind(just(3))(divBy(0))),
+  toString(bind(just(3))(divBy(1))),
+  toString(bind(nothing)(divBy(0))),
+  toString(bind(nothing)(divBy(1)))
+);
 
 export default {
   just,
@@ -97,8 +99,6 @@ export default {
   bind,
   eq
 };
-
-// import { k } from "./combinators";
 
 // type Nothing = { tag: "nothing" };
 // type Just<T> = { tag: "just", value: T };
